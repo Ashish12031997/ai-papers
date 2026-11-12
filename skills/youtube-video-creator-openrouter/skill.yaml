@@ -1,0 +1,5 @@
+name: "youtube-video-creator-openrouter"
+title: "YouTube Video Creator with OpenRouter"
+description: "Use free OpenRouter LLMs to create a YouTube video end to end: script, voice audio, assembled video, and thumbnail, with a human review gate before rendering."
+category: "Work and knowledge"
+include_in_prompt: true
