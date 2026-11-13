@@ -1,0 +1,51 @@
+1
+00:00:00,000 --> 00:00:24,263
+Take this sentence: "The animal didn't cross the street because it was too tired." Who was too tired — the animal, or the street You know instantly It is the animal A computer in 2016 did not It read the sentence one word at a time, like a person reading through a tiny hole, and by the end it had forgotten the start This paper fixed that — with one idea so simple it now runs almost every AI you use.
+
+2
+00:00:24,263 --> 00:01:10,319
+Before 2017, the best way to teach a computer language was a model called a recurrent neural network — an RNN Think of it as a reader with a very small notebook It reads the first word, writes a short note It reads the second word, updates the note It keeps going, word by word, until the end of the sentence Then it answers, using only that final note That works for short sentences It breaks for long ones Imagine a 50-word sentence in a legal document, or a paragraph in a book By word 40, the notebook has been rewritten 40 times The first words are almost gone The model forgets That is why old translation apps were good at short phrases and bad at long sentences — the longer the sentence, the worse the translation There is a second problem, and it is about speed
+
+3
+00:01:10,319 --> 00:01:43,631
+Because the RNN reads one word at a time, in order, you cannot speed it up by using more computers at once Word 10 has to wait for word 9, which has to wait for word 8 Training on millions of sentences took weeks Only a few big labs could afford it, and every new idea took weeks to test So the problem was two things at once First, the model could not remember the start of a long sentence Second, it could not be trained in parallel, so it was slow to build What was needed was a way to look at the whole sentence at once — every word, all together — and let each word decide for itself which other words matter.
+
+4
+00:01:43,631 --> 00:02:17,879
+People had tried to fix this before One fix was to add attention on top of the RNN — a small helper that let the model look back at earlier words It helped, but the RNN was still underneath, still reading one word at a time, still slow Another fix was to use convolutions, the same trick used for images, sliding a small window across the sentence It helped with nearby words, but words far apart still struggled to reach each other What was needed was not a helper on top of the old design It was a new design that did not read one word at a time at all.
+
+5
+00:02:17,879 --> 00:03:05,039
+The paper is called "Attention Is All You Need", published in 2017 by Ashish Vaswani and colleagues at Google Here is the one trick, in plain English Stop reading one word at a time Instead, give every word three small questions to ask First: what am I looking for That is called a Query Second: what do I have to offer That is called a Key Third: what do I actually say That is called a Value Every word gets a Query, a Key and a Value — Q, K and V Then, for each word, compare its Query with every other word's Key If they match well, that other word matters a lot to this word If they do not match, it matters a little Those match scores become weights — numbers that say how much attention to pay
+
+6
+00:03:05,039 --> 00:03:48,935
+Then take a weighted mix of all the Values, using those weights That mix is the word's new meaning, now informed by the whole sentence Go back to our sentence The word "it" asks: what am I looking for Its Query matches the Key of "animal" much better than the Key of "street" So "it" pays most attention to "animal", and its new meaning becomes "the animal" The model has just solved the puzzle — not by reading in order, but by letting every word look at every other word at the same time That is self-attention And because every word does this at the same time, the whole thing can run in parallel No more waiting for word 9 before word 10 You can use many computers at once, and training gets much faster One more detail, and it is the clever part
+
+7
+00:03:48,935 --> 00:04:34,847
+The paper does not use one attention step It uses eight of them at once, called heads Each head learns to look for a different kind of connection — one head might watch who did what, another might watch which words belong together, another might watch tense Eight heads, each 64 numbers wide, add up to 512 numbers per word Then the results are combined That is called multi-head attention, and it is why the model can see a sentence in eight different ways at once Think of it like a meeting Before, one person read the whole report aloud, word by word, and everyone else had to remember it Now, everyone in the room looks at the whole report at once, and each person points at the parts that matter to them Same report, much faster, and nobody forgets the first page.
+
+8
+00:04:34,847 --> 00:05:19,199
+Now let us see it run — NumPy only, no GPU, no API key, in under a minute The file is `demo.py` in this folder, and the link is in the description First, we take a short sentence — "the cat sat on the mat" — and give each word a small list of numbers, its embedding In a real model these numbers are learned Here we make them up with a fixed seed, just to show the mechanism Then come the three lines that are the idea — pause on these on screen: First, we make Q, K and V Each word's numbers are multiplied by three small tables, one for Queries, one for Keys, one for Values That is all the paper's Q, K and V are — the same numbers, looked at through three different lenses Second, we compute the scores
+
+9
+00:05:19,199 --> 00:06:02,711
+Each word's Query is compared with every word's Key — a simple dot product, how much they match We divide by the square root of the size, so the numbers stay calm, and then we take a softmax, which turns the scores into weights that add up to one Those weights are the attention Third, we mix the Values Each word's new meaning is a weighted mix of all the Values, using those attention weights Words that matched well contribute more That is it That is attention Then we print the attention table, and you can read it like a map Look at the row for "sat" It pays most attention to "cat" — the thing doing the sitting That is the whole idea in one number: the word "sat" has found the word it belongs to, just by matching Queries with Keys
+
+10
+00:06:02,711 --> 00:06:36,215
+Some other rows are sharp, some are spread out — and that is the honest part, because these numbers are random, not learned Be honest on camera here: this is a toy demo The numbers are random, not learned, so the attention pattern is only a rough sketch, not a real model's judgement It exists to make the mechanism visible — Query, Key, Value, scores, weights, mix — not to show a trained model A real Transformer learns those tables from millions of sentences But the maths you just saw is the same maths inside ChatGPT, Gemini, and every modern language model.
+
+11
+00:06:36,215 --> 00:07:26,783
+So did it actually work On the paper's own numbers, yes — and fast On English-to-German translation, the big Transformer scored 28.4 BLEU, more than 2 points above the best previous result, ensembles included On English-to-French it scored 41.8 BLEU, the best single model at the time And the base model reached the state of the art in about 12 hours on 8 GPUs The big model took 3.5 days on 8 GPUs — a small fraction of the training time of the best models before it But know the limits Attention looks at every word against every other word, so the work grows with the square of the sentence length A sentence twice as long costs four times as much attention That is why later papers — FlashAttention, and others — had to make attention cheaper for very long documents And attention alone does not give a model knowledge
+
+12
+00:07:26,783 --> 00:07:44,015
+It gives it a way to connect words What the model knows still comes from the data it was trained on Who should care Anyone who uses a language model — which, by now, is almost everyone The Transformer from this paper is the foundation under ChatGPT, Gemini, Claude, and every modern AI assistant.
+
+13
+00:07:44,015 --> 00:08:06,767
+One sentence to remember: stop reading one word at a time — let every word look at every other word at once, and pay attention to what matches That is attention, and it is all you need Next episode: the model still makes things up, because its knowledge is frozen in time The paper that fixes that is RAG — Retrieval- Augmented Generation — and we will run that one in code too.
